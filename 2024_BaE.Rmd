@@ -1,0 +1,161 @@
+---
+title: "Word Cloud of the Discomfort Glare Review Paper 2024"
+author: "Yulia Tyukhova"
+date: "October 7, 2024"
+output: pdf_document
+indent: true
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{indentfirst} #indent for the first paragraph
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document consists of:  
+1. Introduction  
+2. Procedure   
+3. Results   
+4. Sources   
+
+## 1. Introduction
+
+This is a word analysis of the most frequently used words in the accepted version of a published comprehensive review paper titled **"Discomfort glare in outdoor environments after dark – A review of methods, measures, and models"**\textsuperscript{1} excluding supplementary materials in the appendix, references, funding and other information. 
+
+Word clouds can be created using text mining methods that allow us to highlight the most frequently used keywords in a **corpus** - a collection of texts.
+
+## 2. Procedure
+### 2.1 Preparation
+1. The accepted version of the manuscript is manually copied, pasted, and saved in a plain text file (.txt).
+
+2. The following packages are installed (move from comments) and loaded (see comments for the purpose).
+
+```{r,message=FALSE,warning=FALSE}
+#Install
+#options(repos = c(CRAN = "https://cloud.r-project.org/"))
+#install.packages("tm")  #text mining
+#install.packages("wordcloud") #word-cloud generator 
+#install.packages("RColorBrewer") #color palettes
+#install.packages("textstem") #lemmatizing the words
+#Load
+library("tm")
+library("wordcloud")
+library("RColorBrewer")
+library("textstem")
+library("knitr")
+```
+
+3. Interactively choose and import the locally saved text file and use the Corpus() function from text mining (tm) package to load the text. 
+
+```{r }
+#Choose the locally saved file from your laptop
+text <- readLines(file.choose())
+#Load the data as a corpus
+docs <- Corpus(VectorSource(text))
+```
+ 
+### 2.2 Cleaning and lemmatizing
+
+Before counting the words and ultimately creating a word cloud\textsuperscript{2}, there is a number of cleaning steps that have to be completed such as removing numbers, extra white spaces, and so on. Removing **stop words** - common words that carry little or no meaningful information\textsuperscript{3} - is also an important step. They can be divided into three groups: global, subject, and document-level stop words (for further information see reference\textsuperscript{3}).
+
+During the text preparation stage one can choose to do **stemming** or **lemmatizing**. Essentially, stemming removes a part of the word (e.g. word vector ('are', 'am', 'being', 'been', 'be') -->  after stemming ("ar" "am" "be" "been" "be")), while lemmatization transforms the word into its base form using proper grammatical roots (word vector ('are', 'am', 'being', 'been', 'be') -->  after lemmatizing ("be" "be" "be" "be" "be"))\textsuperscript{4}. I used lemmatizing for normalizing the text.  
+
+A note on the word "LED": During the analysis, I noticed that I don't see any "LED" words that is quite central to this particular paper. It became clear that after all words transformed to the lower case and are lemmatized "LED" became "led" that in turn became "lead". I had to differentiate "LED" from "lead" by making up a new word during the analysis ("LEDr") and then returning the correct output after the analysis is done ("LED"). 
+
+Ultimately, there are a few extra steps that need to be completed after the "standard" text cleaning depending on the peculiarities of your text. For the purpose of a word cloud, I had to eliminate names of the cited authors and a number of words such as "however" that did not add value to my word cloud.
+
+```{r,warning=FALSE}
+#Remove numbers
+docs <- tm_map(docs, removeNumbers)
+#Remove punctuation
+docs <- tm_map(docs, removePunctuation)
+#Eliminate extra white spaces
+docs <- tm_map(docs, stripWhitespace)
+#Before I lemmatize the word 'LED', I need to "save" it, otherwise it becomes 'lead'.
+docs <- tm_map(docs, content_transformer(function(x) gsub('LED', 'LEDr', x)))
+# Convert the text to lower case (This will ensure stop words working)
+docs <- tm_map(docs, content_transformer(tolower))
+#Remove common English stop words
+docs <- tm_map(docs, removeWords, stopwords("english"))
+#Remove your own stop word. Specify your stop words as a character vector.
+docs <- tm_map(docs, removeWords, c("however","cdm","others","might","kohko","abboushi",
+                                    "bullough", "lin","since","also","bul","bennett","many",
+                                    "well","can","waters","two","one","tyukhova","needs",
+                                    "based","boer","villa","cie","kent","fotios",
+                                    "tashiro","hopkinson","will",'al',"bommel","et")) 
+docs <- tm_map(docs, content_transformer(lemmatize_strings))
+
+#Additional bugs I am fixing manually.Some punctuation was not removed and some words 
+#had to be displayed in a desired way (e.g. 'non-uniformity' instead of 'uniformity')
+docs<-gsub(" – ", " ", docs)
+docs<-gsub('’', '', docs)
+docs<-gsub('"",', '', docs)
+docs<-gsub('‘', '', docs)
+docs<-gsub('"–', '', docs)
+docs<-gsub('"discomfort', 'discomfort', docs)
+docs<-gsub('nonuniform','non-uniform', docs)
+docs<-gsub('nonuniformty','non-uniformty', docs) 
+docs<-gsub('ledr','led', docs) 
+docs<-gsub('datum','data', docs) 
+docs<-gsub('luminaires','luminaire', docs) 
+```
+
+The next step is to build a table containing the frequency of the words called **document matrix**\textsuperscript{2}, in which column names are words and row names are documents. The function TermDocumentMatrix() comes from text mining package.
+I included an additional step of transforming certain words to the upper case.
+```{r }
+#Build a term-document matrix
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+
+#Define terms to be displayed in uppercase
+uppercase_terms <- c("led", "ugr","cbe","bcd")
+#Make specific terms uppercase
+rownames(m) <- sapply(rownames(m), function(term) {
+  if (term %in% uppercase_terms) {
+    return(toupper(term))
+  } else {
+    return(term)
+  }
+})
+```
+
+## 3. Results
+
+This section shows the frequency and word cloud of the first 100 most used words in the accepted version of the research paper\textsuperscript{1}.
+```{r }
+#This is a continuation of building a term-document matrix.
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+d1<-head(d,100)
+#d1
+```
+
+```{r }
+#Simple table
+kable(d1,row.names=FALSE, caption = "Word frequency first 100 words")
+```
+
+```{r wordcloud, fig.width=5, fig.height=4}
+#Word cloud
+set.seed(2345)
+wordcloud(words = d$word, freq = d$freq, min.freq = 5,
+          max.words=100, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"),
+          scale=c(5,0.36))
+```
+
+
+## 4. Sources
+
+1. Tyukhova, Y. 2024. “Discomfort glare in outdoor nighttime environments after dark – A review of methods, measures, and models”. Building and Environment Volume 263, 111850, ISSN 0360-1323 \textcolor{blue}{https://doi.org/10.1016/j.buildenv.2024.111850}
+
+2. Text mining and word cloud fundamentals in R \textcolor{blue}{http://www.sthda.com/english/wiki/text-mining-and-word-cloud-fundamentals-in-r-5-simple-steps-you-should-know}
+
+3. Stop words \textcolor{blue}{https://smltar.com/stopwords}
+
+4. Stemming vs lemmatizing  
+\textcolor{blue}{https://www.rdocumentation.org/packages/textstem/versions/0.1.4\#examples}
+
+
+
