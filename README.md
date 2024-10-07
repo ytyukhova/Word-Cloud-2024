@@ -4,7 +4,7 @@ This repository includes a word analysis of the accepted version of the "Discomf
 
 ## Description of files
 **X.pdf** includes code, analysis, and the results.  
-**Rmd** contains code performed on the data.
+**Rmd** contains code performed on the data.  
 **pdf** contains the word cloud.
 
 ## Contributor
